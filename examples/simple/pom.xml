@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <parent>
+    <artifactId>gwt-jackson-rest-examples</artifactId>
+    <groupId>com.github.nmorel.gwtjackson</groupId>
+    <version>0.0.1-SNAPSHOT</version>
+  </parent>
+  <modelVersion>4.0.0</modelVersion>
+
+  <artifactId>gwt-jackson-rest-examples-simple</artifactId>
+  <packaging>war</packaging>
+
+  <name>gwt-jackson :: REST :: Examples :: Simple</name>
+  <description>GWT Hello World using gwt-jackson and its REST API</description>
+
+  <properties>
+    <gwt.module>com.github.nmorel.gwtjackson.hello.HelloRest</gwt.module>
+  </properties>
+
+  <dependencies>
+    <dependency>
+      <groupId>org.glassfish.jersey.containers</groupId>
+      <artifactId>jersey-container-servlet</artifactId>
+      <version>2.16</version>
+    </dependency>
+    <dependency>
+      <groupId>org.glassfish.jersey.media</groupId>
+      <artifactId>jersey-media-json-jackson</artifactId>
+      <version>2.16</version>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>gwt-maven-plugin</artifactId>
+      </plugin>
+    </plugins>
+  </build>
+
+</project>
