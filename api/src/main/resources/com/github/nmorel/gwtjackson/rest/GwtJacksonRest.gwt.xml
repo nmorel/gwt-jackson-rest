@@ -20,6 +20,5 @@
   <inherits name="com.github.nmorel.gwtjackson.GwtJackson" />
 
   <source path="api" />
-  <source path="gen" />
 
 </module>
