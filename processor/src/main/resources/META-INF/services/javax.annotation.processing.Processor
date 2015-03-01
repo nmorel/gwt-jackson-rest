@@ -14,4 +14,4 @@
 # limitations under the License.
 #
 
-com.github.nmorel.gwtjackson.rest.annotations.RestServiceProcessor
+com.github.nmorel.gwtjackson.rest.processor.GenRestBuilderProcessor

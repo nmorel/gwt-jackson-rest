@@ -12,12 +12,12 @@ import javax.ws.rs.QueryParam;
 import com.github.nmorel.gwtjackson.hello.shared.FieldVerifier;
 import com.github.nmorel.gwtjackson.hello.shared.GreetingRequest;
 import com.github.nmorel.gwtjackson.hello.shared.GreetingResponse;
-import com.github.nmorel.gwtjackson.rest.annotations.GenRestService;
+import com.github.nmorel.gwtjackson.rest.processor.GenRestBuilder;
 
 /**
  * @author Nicolas Morel
  */
-@GenRestService
+@GenRestBuilder
 @Path( "hello" )
 public class GreetingResource {
 

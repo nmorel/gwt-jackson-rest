@@ -1,0 +1,290 @@
+/*
+ * Copyright 2015 Nicolas Morel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.github.nmorel.gwtjackson.rest.processor;
+
+import javax.annotation.processing.AbstractProcessor;
+import javax.annotation.processing.Filer;
+import javax.annotation.processing.Messager;
+import javax.annotation.processing.ProcessingEnvironment;
+import javax.annotation.processing.RoundEnvironment;
+import javax.lang.model.SourceVersion;
+import javax.lang.model.element.AnnotationMirror;
+import javax.lang.model.element.Element;
+import javax.lang.model.element.Modifier;
+import javax.lang.model.element.TypeElement;
+import javax.lang.model.element.VariableElement;
+import javax.lang.model.type.TypeMirror;
+import javax.tools.Diagnostic;
+import javax.tools.JavaFileObject;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.QueryParam;
+import java.io.IOException;
+import java.io.Writer;
+import java.lang.annotation.Annotation;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.Map;
+import java.util.Set;
+
+import com.github.nmorel.gwtjackson.client.ObjectMapper;
+import com.github.nmorel.gwtjackson.client.ObjectReader;
+import com.github.nmorel.gwtjackson.client.ObjectWriter;
+import com.github.nmorel.gwtjackson.rest.api.RestRequestBuilder;
+import com.google.gwt.core.client.GWT;
+import com.google.gwt.http.client.RequestBuilder;
+import com.squareup.javapoet.ClassName;
+import com.squareup.javapoet.CodeBlock;
+import com.squareup.javapoet.FieldSpec;
+import com.squareup.javapoet.JavaFile;
+import com.squareup.javapoet.MethodSpec;
+import com.squareup.javapoet.ParameterizedTypeName;
+import com.squareup.javapoet.TypeName;
+import com.squareup.javapoet.TypeSpec;
+
+/**
+ * Processor handling type annotated with {@link GenRestBuilder}.
+ */
+public class GenRestBuilderProcessor extends AbstractProcessor {
+
+    private Filer filer;
+
+    private Messager messager;
+
+    private Options options;
+
+    @Override
+    public Set<String> getSupportedOptions() {
+        return Options.getOptionsName();
+    }
+
+    @Override
+    public Set<String> getSupportedAnnotationTypes() {
+        Set<String> annotations = new LinkedHashSet<String>();
+        annotations.add( GenRestBuilder.class.getCanonicalName() );
+        return annotations;
+    }
+
+    @Override
+    public SourceVersion getSupportedSourceVersion() {
+        return SourceVersion.latestSupported();
+    }
+
+    @Override
+    public synchronized void init( ProcessingEnvironment processingEnv ) {
+        super.init( processingEnv );
+
+        filer = processingEnv.getFiler();
+        messager = processingEnv.getMessager();
+
+        options = new Options( processingEnv.getOptions() );
+    }
+
+    @Override
+    public boolean process( Set<? extends TypeElement> annotations, RoundEnvironment roundEnv ) {
+        for ( Element element : roundEnv.getElementsAnnotatedWith( GenRestBuilder.class ) ) {
+
+            if ( !isAnnotatedWith( element, Path.class ) ) {
+                error( element, "Only classes and interfaces annotated with @%s are supported", Path.class.getCanonicalName() );
+                return true; // Exit processing
+            }
+
+            RestService service;
+            try {
+                service = new RestService( options, element );
+            } catch ( MoreThanOneBodyParamException e ) {
+                error( e.getMethod(), "Cannot have more than one body parameter" );
+                return true;
+            }
+
+            TypeSpec type = generateBuilder( service );
+
+            try {
+                JavaFileObject jfo = filer.createSourceFile( service.getBuilderQualifiedClassName() );
+                JavaFile file = JavaFile.builder( service.getPackageName(), type ).build();
+                Writer writer = jfo.openWriter();
+                file.writeTo( writer );
+                writer.close();
+            } catch ( IOException e ) {
+                error( null, e.getMessage() );
+                return true; // Exit processing
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Generate the rest service builder
+     *
+     * @param restService The rest service
+     */
+    private TypeSpec generateBuilder( RestService restService ) {
+
+        TypeSpec.Builder typeBuilder = TypeSpec.classBuilder( restService.getBuilderSimpleClassName() )
+                .addModifiers( Modifier.PUBLIC, Modifier.FINAL )
+                .addJavadoc( "Generated REST service builder for {@link $L}.\n", restService.getTypeElement().getQualifiedName() )
+                .addMethod( MethodSpec.constructorBuilder().addModifiers( Modifier.PRIVATE ).build() );
+
+        Map<TypeMirror, MethodSpec> mapperGetters = buildMappers( typeBuilder, restService );
+
+        for ( RestServiceMethod method : restService.getMethods() ) {
+            MethodSpec methodSpec = buildMethod( mapperGetters, method );
+            typeBuilder.addMethod( methodSpec );
+        }
+
+        return typeBuilder.build();
+    }
+
+    private Map<TypeMirror, MethodSpec> buildMappers( TypeSpec.Builder typeBuilder, RestService restService ) {
+        Set<TypeMirror> readers = new LinkedHashSet<TypeMirror>( restService.getReturnTypes() );
+        readers.removeAll( restService.getBodyTypes() );
+
+        Set<TypeMirror> writers = new LinkedHashSet<TypeMirror>( restService.getBodyTypes() );
+        writers.removeAll( restService.getReturnTypes() );
+
+        Set<TypeMirror> mappers = new LinkedHashSet<TypeMirror>( restService.getBodyTypes() );
+        mappers.retainAll( restService.getReturnTypes() );
+
+        Map<TypeMirror, MethodSpec> result = new LinkedHashMap<TypeMirror, MethodSpec>();
+        result.putAll( buildMappers( restService.getPackageName(), restService
+                .getBuilderSimpleClassName(), typeBuilder, readers, ObjectReader.class ) );
+        result.putAll( buildMappers( restService.getPackageName(), restService
+                .getBuilderSimpleClassName(), typeBuilder, writers, ObjectWriter.class ) );
+        result.putAll( buildMappers( restService.getPackageName(), restService
+                .getBuilderSimpleClassName(), typeBuilder, mappers, ObjectMapper.class ) );
+        return result;
+    }
+
+    private Map<TypeMirror, MethodSpec> buildMappers( String packageName, String className, TypeSpec.Builder typeBuilder, Set<TypeMirror>
+            types, Class clazz ) {
+        int i = 1;
+        Map<TypeMirror, MethodSpec> result = new HashMap<TypeMirror, MethodSpec>();
+        for ( TypeMirror type : types ) {
+            String mapperName = clazz.getSimpleName() + i++;
+
+            TypeName mapperType = ClassName.get( packageName, className, mapperName );
+
+            TypeSpec innerMapper = TypeSpec.interfaceBuilder( mapperName )
+                    .addModifiers( Modifier.STATIC )
+                    .addSuperinterface( ParameterizedTypeName.get( ClassName.get( clazz ), ClassName.get( type ) ) )
+                    .build();
+            typeBuilder.addType( innerMapper );
+
+            FieldSpec mapperField = FieldSpec
+                    .builder( mapperType, mapperName.toLowerCase() )
+                    .addModifiers( Modifier.PRIVATE, Modifier.STATIC )
+                    .build();
+            typeBuilder.addField( mapperField );
+
+            MethodSpec mapperGetter = MethodSpec.methodBuilder( "get" + mapperName )
+                    .addModifiers( Modifier.PRIVATE, Modifier.STATIC )
+                    .returns( mapperType )
+                    .beginControlFlow( "if ($N == null)", mapperField )
+                    .addStatement( "$N = $T.create($T.class)", mapperField, GWT.class, mapperType )
+                    .endControlFlow()
+                    .addStatement( "return $N", mapperField )
+                    .build();
+            typeBuilder.addMethod( mapperGetter );
+
+            result.put( type, mapperGetter );
+        }
+        return result;
+    }
+
+    private MethodSpec buildMethod( Map<TypeMirror, MethodSpec> mapperGetters, RestServiceMethod method ) {
+        AnnotationMirror httpMethodAnnotation = method.getHttpMethodAnnotation();
+
+        TypeMirror returnType = method.getReturnType();
+        MethodSpec returnTypeReaderGetter = mapperGetters.get( returnType );
+        TypeName returnTypeName;
+        if ( null == returnTypeReaderGetter ) {
+            returnTypeName = ClassName.get( Void.class );
+        } else {
+            returnTypeName = TypeName.get( returnType );
+        }
+
+        VariableElement bodyVariable = method.getBodyParamVariable();
+        MethodSpec bodyTypeWriterGetter;
+        TypeName bodyTypeName;
+
+        if ( null != bodyVariable ) {
+            bodyTypeWriterGetter = mapperGetters.get( bodyVariable.asType() );
+            bodyTypeName = TypeName.get( bodyVariable.asType() );
+        } else {
+            bodyTypeWriterGetter = null;
+            bodyTypeName = ClassName.get( Void.class );
+        }
+
+        TypeName restType = ParameterizedTypeName.get( ClassName.get( RestRequestBuilder.class ), bodyTypeName, returnTypeName );
+
+        MethodSpec.Builder methodSpecBuilder = MethodSpec.methodBuilder( method.getMethod().getSimpleName().toString() )
+                .addModifiers( Modifier.PUBLIC, Modifier.STATIC, Modifier.FINAL )
+                .returns( restType );
+
+        CodeBlock.Builder initRestBuilder = CodeBlock.builder()
+                .add( "new $T()", restType )
+                .indent()
+                .add( "\n.method($T.$L)", RequestBuilder.class, httpMethodAnnotation.getAnnotationType().asElement().getSimpleName() )
+                .add( "\n.url($S)", method.getUrl() );
+
+        if ( null != bodyVariable ) {
+            initRestBuilder.add( "\n.body($L)", bodyVariable.getSimpleName() );
+        }
+        if ( null != bodyTypeWriterGetter ) {
+            initRestBuilder.add( "\n.bodyConverter($N())", bodyTypeWriterGetter );
+        }
+
+        for ( VariableElement variable : method.getMethod().getParameters() ) {
+            methodSpecBuilder.addParameter( ClassName.get( variable.asType() ), variable.getSimpleName().toString(), Modifier.FINAL );
+            if ( isAnnotatedWith( variable, PathParam.class ) ) {
+                PathParam pathParamAnnotation = variable.getAnnotation( PathParam.class );
+                initRestBuilder.add( "\n.addPathParam($S, $L)", pathParamAnnotation.value(), variable.getSimpleName() );
+            } else if ( isAnnotatedWith( variable, QueryParam.class ) ) {
+                QueryParam queryParamAnnotation = variable.getAnnotation( QueryParam.class );
+                initRestBuilder.add( "\n.addQueryParam($S, $L)", queryParamAnnotation.value(), variable.getSimpleName() );
+            }
+        }
+
+        if ( null != returnTypeReaderGetter ) {
+            initRestBuilder.add( "\n.responseConverter($N())", returnTypeReaderGetter );
+        }
+
+        initRestBuilder.unindent();
+
+        methodSpecBuilder.addStatement( "return $L", initRestBuilder.build() );
+
+        return methodSpecBuilder.build();
+    }
+
+    private boolean isAnnotatedWith( Element element, Class<? extends Annotation> clazz ) {
+        return element.getAnnotation( clazz ) != null;
+    }
+
+    /**
+     * Prints an error message
+     *
+     * @param e The element which has caused the error. Can be null
+     * @param msg The error message
+     * @param args if the error messge cotains %s, %d etc. placeholders this arguments will be used
+     * to
+     * replace them
+     */
+    public void error( Element e, String msg, Object... args ) {
+        messager.printMessage( Diagnostic.Kind.ERROR, String.format( msg, args ), e );
+    }
+}

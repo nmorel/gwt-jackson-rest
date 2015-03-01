@@ -6,7 +6,6 @@ import com.github.nmorel.gwtjackson.hello.shared.GreetingResponse;
 import com.github.nmorel.gwtjackson.rest.api.ErrorCallback;
 import com.github.nmorel.gwtjackson.rest.api.RestCallback;
 import com.github.nmorel.gwtjackson.rest.api.RestRequestBuilder;
-import com.github.nmorel.gwtjackson.rest.gen.com.github.nmorel.gwtjackson.hello.server.GreetingResourceBuilder;
 import com.google.gwt.core.client.EntryPoint;
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;

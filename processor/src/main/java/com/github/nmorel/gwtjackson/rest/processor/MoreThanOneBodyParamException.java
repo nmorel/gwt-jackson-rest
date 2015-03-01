@@ -14,20 +14,22 @@
  * limitations under the License.
  */
 
-package com.github.nmorel.gwtjackson.rest.annotations;
+package com.github.nmorel.gwtjackson.rest.processor;
 
-import java.lang.annotation.Documented;
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+import javax.lang.model.element.ExecutableElement;
 
 /**
  * @author Nicolas Morel
  */
-@Target( {ElementType.TYPE} )
-@Documented
-@Retention( RetentionPolicy.SOURCE )
-public @interface GenRestService {
+public class MoreThanOneBodyParamException extends RuntimeException {
 
+    private final ExecutableElement method;
+
+    public MoreThanOneBodyParamException( ExecutableElement method ) {
+        this.method = method;
+    }
+
+    public ExecutableElement getMethod() {
+        return method;
+    }
 }
