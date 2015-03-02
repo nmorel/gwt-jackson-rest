@@ -45,14 +45,17 @@ import java.util.Set;
 import com.github.nmorel.gwtjackson.client.ObjectMapper;
 import com.github.nmorel.gwtjackson.client.ObjectReader;
 import com.github.nmorel.gwtjackson.client.ObjectWriter;
+import com.github.nmorel.gwtjackson.rest.api.RestCallback;
 import com.github.nmorel.gwtjackson.rest.api.RestRequestBuilder;
 import com.google.gwt.core.client.GWT;
+import com.google.gwt.http.client.Request;
 import com.google.gwt.http.client.RequestBuilder;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.CodeBlock;
 import com.squareup.javapoet.FieldSpec;
 import com.squareup.javapoet.JavaFile;
 import com.squareup.javapoet.MethodSpec;
+import com.squareup.javapoet.ParameterSpec;
 import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeSpec;
@@ -136,15 +139,14 @@ public class GenRestBuilderProcessor extends AbstractProcessor {
     private TypeSpec generateBuilder( RestService restService ) {
 
         TypeSpec.Builder typeBuilder = TypeSpec.classBuilder( restService.getBuilderSimpleClassName() )
-                .addModifiers( Modifier.PUBLIC, Modifier.FINAL )
-                .addJavadoc( "Generated REST service builder for {@link $L}.\n", restService.getTypeElement().getQualifiedName() )
-                .addMethod( MethodSpec.constructorBuilder().addModifiers( Modifier.PRIVATE ).build() );
+                .addModifiers(Modifier.PUBLIC, Modifier.FINAL)
+                .addJavadoc("Generated REST service builder for {@link $L}.\n", restService.getTypeElement().getQualifiedName())
+                .addMethod(MethodSpec.constructorBuilder().addModifiers(Modifier.PRIVATE).build());
 
         Map<TypeMirror, MethodSpec> mapperGetters = buildMappers( typeBuilder, restService );
 
         for ( RestServiceMethod method : restService.getMethods() ) {
-            MethodSpec methodSpec = buildMethod( mapperGetters, method );
-            typeBuilder.addMethod( methodSpec );
+            buildMethod( typeBuilder, mapperGetters, method );
         }
 
         return typeBuilder.build();
@@ -180,24 +182,24 @@ public class GenRestBuilderProcessor extends AbstractProcessor {
             TypeName mapperType = ClassName.get( packageName, className, mapperName );
 
             TypeSpec innerMapper = TypeSpec.interfaceBuilder( mapperName )
-                    .addModifiers( Modifier.STATIC )
-                    .addSuperinterface( ParameterizedTypeName.get( ClassName.get( clazz ), ClassName.get( type ) ) )
+                    .addModifiers(Modifier.STATIC)
+                    .addSuperinterface(ParameterizedTypeName.get(ClassName.get(clazz), ClassName.get(type)))
                     .build();
             typeBuilder.addType( innerMapper );
 
             FieldSpec mapperField = FieldSpec
-                    .builder( mapperType, mapperName.toLowerCase() )
-                    .addModifiers( Modifier.PRIVATE, Modifier.STATIC )
+                    .builder(mapperType, mapperName.toLowerCase())
+                    .addModifiers(Modifier.PRIVATE, Modifier.STATIC)
                     .build();
             typeBuilder.addField( mapperField );
 
             MethodSpec mapperGetter = MethodSpec.methodBuilder( "get" + mapperName )
-                    .addModifiers( Modifier.PRIVATE, Modifier.STATIC )
-                    .returns( mapperType )
-                    .beginControlFlow( "if ($N == null)", mapperField )
-                    .addStatement( "$N = $T.create($T.class)", mapperField, GWT.class, mapperType )
+                    .addModifiers(Modifier.PRIVATE, Modifier.STATIC)
+                    .returns(mapperType)
+                    .beginControlFlow("if ($N == null)", mapperField)
+                    .addStatement("$N = $T.create($T.class)", mapperField, GWT.class, mapperType)
                     .endControlFlow()
-                    .addStatement( "return $N", mapperField )
+                    .addStatement("return $N", mapperField)
                     .build();
             typeBuilder.addMethod( mapperGetter );
 
@@ -206,7 +208,9 @@ public class GenRestBuilderProcessor extends AbstractProcessor {
         return result;
     }
 
-    private MethodSpec buildMethod( Map<TypeMirror, MethodSpec> mapperGetters, RestServiceMethod method ) {
+    private void buildMethod(TypeSpec.Builder typeBuilder, Map<TypeMirror, MethodSpec> mapperGetters, RestServiceMethod method) {
+        String methodName = method.getMethod().getSimpleName().toString();
+        
         AnnotationMirror httpMethodAnnotation = method.getHttpMethodAnnotation();
 
         TypeMirror returnType = method.getReturnType();
@@ -232,15 +236,19 @@ public class GenRestBuilderProcessor extends AbstractProcessor {
 
         TypeName restType = ParameterizedTypeName.get( ClassName.get( RestRequestBuilder.class ), bodyTypeName, returnTypeName );
 
-        MethodSpec.Builder methodSpecBuilder = MethodSpec.methodBuilder( method.getMethod().getSimpleName().toString() )
-                .addModifiers( Modifier.PUBLIC, Modifier.STATIC, Modifier.FINAL )
-                .returns( restType );
+        MethodSpec.Builder methodSpecBuilder = MethodSpec.methodBuilder( methodName )
+                .addModifiers(Modifier.PUBLIC, Modifier.STATIC, Modifier.FINAL)
+                .returns(restType);
+
+        MethodSpec.Builder methodWithCallbackSpecBuilder = MethodSpec.methodBuilder( methodName )
+                .addModifiers(Modifier.PUBLIC, Modifier.STATIC, Modifier.FINAL)
+                .returns(Request.class);
 
         CodeBlock.Builder initRestBuilder = CodeBlock.builder()
-                .add( "new $T()", restType )
+                .add("new $T()", restType)
                 .indent()
-                .add( "\n.method($T.$L)", RequestBuilder.class, httpMethodAnnotation.getAnnotationType().asElement().getSimpleName() )
-                .add( "\n.url($S)", method.getUrl() );
+                .add("\n.method($T.$L)", RequestBuilder.class, httpMethodAnnotation.getAnnotationType().asElement().getSimpleName())
+                .add("\n.url($S)", method.getUrl());
 
         if ( null != bodyVariable ) {
             initRestBuilder.add( "\n.body($L)", bodyVariable.getSimpleName() );
@@ -248,9 +256,19 @@ public class GenRestBuilderProcessor extends AbstractProcessor {
         if ( null != bodyTypeWriterGetter ) {
             initRestBuilder.add( "\n.bodyConverter($N())", bodyTypeWriterGetter );
         }
+        
+        StringBuilder callParamBuilder = new StringBuilder();
 
         for ( VariableElement variable : method.getMethod().getParameters() ) {
-            methodSpecBuilder.addParameter( ClassName.get( variable.asType() ), variable.getSimpleName().toString(), Modifier.FINAL );
+            ParameterSpec parameterSpec = ParameterSpec.builder(ClassName.get( variable.asType() ), variable.getSimpleName().toString(), Modifier.FINAL).build();
+            methodSpecBuilder.addParameter( parameterSpec );
+            methodWithCallbackSpecBuilder.addParameter( parameterSpec );
+
+            if (callParamBuilder.length() > 0) {
+                callParamBuilder.append(", ");
+            }
+            callParamBuilder.append(variable.getSimpleName().toString());
+            
             if ( isAnnotatedWith( variable, PathParam.class ) ) {
                 PathParam pathParamAnnotation = variable.getAnnotation( PathParam.class );
                 initRestBuilder.add( "\n.addPathParam($S, $L)", pathParamAnnotation.value(), variable.getSimpleName() );
@@ -266,9 +284,19 @@ public class GenRestBuilderProcessor extends AbstractProcessor {
 
         initRestBuilder.unindent();
 
-        methodSpecBuilder.addStatement( "return $L", initRestBuilder.build() );
+        methodSpecBuilder.addStatement("return $L", initRestBuilder.build());
+        MethodSpec methodSpec = methodSpecBuilder.build();
+        typeBuilder.addMethod(methodSpec);
 
-        return methodSpecBuilder.build();
+        methodWithCallbackSpecBuilder.addParameter(ParameterizedTypeName.get(ClassName.get(RestCallback.class), returnTypeName), "_callback_");
+        methodWithCallbackSpecBuilder.addStatement("return $L", CodeBlock.builder()
+                .add("$L($L)", methodName, callParamBuilder)
+                .indent()
+                .add("\n.callback(_callback_)")
+                .add("\n.send()")
+                .unindent()
+                .build());
+        typeBuilder.addMethod(methodWithCallbackSpecBuilder.build());
     }
 
     private boolean isAnnotatedWith( Element element, Class<? extends Annotation> clazz ) {

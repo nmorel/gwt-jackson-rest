@@ -30,7 +30,7 @@ public abstract class RestCallback<T> {
     public abstract void onSuccess(T result);
 
     public void onError(Response response) {
-        throw new RestException("An error occured. Status : " + response.getStatusCode());
+        onFailure(new RestException("An error occured. Status : " + response.getStatusCode()));
     }
 
     public void onFailure(Throwable throwable) {
