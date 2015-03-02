@@ -28,36 +28,45 @@ class RestRequestCallback<R> implements RequestCallback {
 
     private final ObjectReader<R> responseConverter;
 
-    private final RestCallback<R> successCallback;
+    private final RestCallback<R> callback;
 
-    private final ErrorCallback errorCallback;
-
-    RestRequestCallback( ObjectReader<R> responseConverter, RestCallback<R> successCallback, ErrorCallback errorCallback ) {
+    RestRequestCallback(ObjectReader<R> responseConverter, RestCallback<R> callback) {
         this.responseConverter = responseConverter;
-        this.successCallback = successCallback;
-        this.errorCallback = errorCallback;
+        this.callback = callback;
     }
 
     @Override
-    public void onResponseReceived( Request request, Response response ) {
-        // TODO verify status code
-        if ( null != successCallback ) {
-            R result;
-            if ( null != responseConverter ) {
-                result = responseConverter.read( response.getText() );
-            } else {
-                result = null;
+    public void onResponseReceived(Request request, Response response) {
+        if (isSuccessStatusCode(response)) {
+            if (null != callback) {
+                R result;
+                if (null != responseConverter) {
+                    result = responseConverter.read(response.getText());
+                } else {
+                    result = null;
+                }
+                callback.onSuccess(response, result);
             }
-            successCallback.onSuccess( response, result );
+        } else {
+            if (null != callback) {
+                callback.onError(response);
+            } else {
+                throw new RestException("An error occured. Status : " + response.getStatusCode());
+            }
         }
     }
 
+    private boolean isSuccessStatusCode(Response response) {
+        int statusCode = response.getStatusCode();
+        return (statusCode >= 200 && statusCode < 300) || statusCode == 304;
+    }
+
     @Override
-    public void onError( Request request, Throwable exception ) {
-        if ( null == errorCallback ) {
-            throw new RuntimeException( exception );
+    public void onError(Request request, Throwable exception) {
+        if (null == callback) {
+            throw new RestException(exception);
         } else {
-            errorCallback.onError( null, exception );
+            callback.onFailure(exception);
         }
     }
 }

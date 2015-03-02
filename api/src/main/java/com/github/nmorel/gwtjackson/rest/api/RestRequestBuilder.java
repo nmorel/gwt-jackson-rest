@@ -34,7 +34,7 @@ import com.google.gwt.http.client.URL;
 /**
  * @author Nicolas Morel
  */
-public class    RestRequestBuilder<B, R> {
+public class RestRequestBuilder<B, R> {
 
     private static String defaultApplicationPath = "";
 
@@ -96,9 +96,7 @@ public class    RestRequestBuilder<B, R> {
 
     private ObjectReader<R> responseConverter;
 
-    private RestCallback<R> successCallback;
-
-    private ErrorCallback errorCallback;
+    private RestCallback<R> callback;
 
     public RestRequestBuilder() {
     }
@@ -152,7 +150,7 @@ public class    RestRequestBuilder<B, R> {
 
     public RestRequestBuilder<B, R> addQueryParam( String name, Object value ) {
         List<Object> allValues = getQueryParams( name );
-        allValues.add( value );
+        allValues.add(value);
         return this;
     }
 
@@ -218,13 +216,8 @@ public class    RestRequestBuilder<B, R> {
         return this;
     }
 
-    public RestRequestBuilder<B, R> successCallback( RestCallback<R> successCallback ) {
-        this.successCallback = successCallback;
-        return this;
-    }
-
-    public RestRequestBuilder<B, R> errorCallback( ErrorCallback errorCallback ) {
-        this.errorCallback = errorCallback;
+    public RestRequestBuilder<B, R> callback( RestCallback<R> callback ) {
+        this.callback = callback;
         return this;
     }
 
@@ -302,7 +295,7 @@ public class    RestRequestBuilder<B, R> {
             }
         }
 
-        builder.setCallback( new RestRequestCallback<R>( responseConverter, successCallback, errorCallback ) );
+        builder.setCallback( new RestRequestCallback<R>( responseConverter, callback ) );
 
         try {
             return builder.send();

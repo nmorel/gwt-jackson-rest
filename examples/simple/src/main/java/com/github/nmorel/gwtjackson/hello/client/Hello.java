@@ -3,7 +3,6 @@ package com.github.nmorel.gwtjackson.hello.client;
 import com.github.nmorel.gwtjackson.hello.shared.FieldVerifier;
 import com.github.nmorel.gwtjackson.hello.shared.GreetingRequest;
 import com.github.nmorel.gwtjackson.hello.shared.GreetingResponse;
-import com.github.nmorel.gwtjackson.rest.api.ErrorCallback;
 import com.github.nmorel.gwtjackson.rest.api.RestCallback;
 import com.github.nmorel.gwtjackson.rest.api.RestRequestBuilder;
 import com.google.gwt.core.client.EntryPoint;
@@ -123,25 +122,29 @@ public class Hello implements EntryPoint {
                 serverResponseLabel.setText( "" );
 
                 GreetingResourceBuilder.greet( new GreetingRequest( textToServer ) )
-                        .successCallback( new RestCallback<GreetingResponse>() {
+                        .callback(new RestCallback<GreetingResponse>() {
                             @Override
-                            protected void onSuccess( GreetingResponse result ) {
-                                dialogBox.setText( "Remote Procedure Call" );
-                                serverResponseLabel.removeStyleName( "serverResponseLabelError" );
-                                serverResponseLabel.setHTML( new SafeHtmlBuilder().appendEscaped( result.getGreeting() )
-                                        .appendHtmlConstant( "<br><br>I am running " ).appendEscaped( result.getServerInfo() )
-                                        .appendHtmlConstant( ".<br><br>It looks like you are using:<br>" ).appendEscaped( result
-                                                .getUserAgent() ).toSafeHtml() );
+                            public void onSuccess(GreetingResponse result) {
+                                dialogBox.setText("Remote Procedure Call");
+                                serverResponseLabel.removeStyleName("serverResponseLabelError");
+                                serverResponseLabel.setHTML(new SafeHtmlBuilder().appendEscaped(result.getGreeting())
+                                        .appendHtmlConstant("<br><br>I am running ").appendEscaped(result.getServerInfo())
+                                        .appendHtmlConstant(".<br><br>It looks like you are using:<br>").appendEscaped(result
+                                                .getUserAgent()).toSafeHtml());
                                 dialogBox.center();
-                                closeButton.setFocus( true );
+                                closeButton.setFocus(true);
                             }
-                        } )
-                        .errorCallback( new ErrorCallback() {
+
                             @Override
-                            public void onError( Response response, Throwable throwable ) {
+                            public void onError(Response response) {
                                 onRequestFailure();
                             }
-                        } )
+
+                            @Override
+                            public void onFailure(Throwable throwable) {
+                                onRequestFailure();
+                            }
+                        })
                         .send();
             }
 

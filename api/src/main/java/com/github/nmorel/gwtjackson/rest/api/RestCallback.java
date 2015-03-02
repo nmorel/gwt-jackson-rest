@@ -23,13 +23,17 @@ import com.google.gwt.http.client.Response;
  */
 public abstract class RestCallback<T> {
 
-    private Response response;
-
-    public void onSuccess( Response response, T result ) {
-        this.response = response;
-        onSuccess( result );
+    public void onSuccess(Response response, T result) {
+        onSuccess(result);
     }
 
-    protected abstract void onSuccess( T result );
+    public abstract void onSuccess(T result);
 
+    public void onError(Response response) {
+        throw new RestException("An error occured. Status : " + response.getStatusCode());
+    }
+
+    public void onFailure(Throwable throwable) {
+        throw new RestException(throwable);
+    }
 }
