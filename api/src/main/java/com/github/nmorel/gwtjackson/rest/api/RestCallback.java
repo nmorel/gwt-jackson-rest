@@ -17,17 +17,16 @@
 package com.github.nmorel.gwtjackson.rest.api;
 
 import com.google.gwt.http.client.Response;
+import com.google.gwt.user.client.rpc.AsyncCallback;
 
 /**
  * @author Nicolas Morel
  */
-public abstract class RestCallback<T> {
+public abstract class RestCallback<T> implements AsyncCallback<T> {
 
     public void onSuccess(Response response, T result) {
         onSuccess(result);
     }
-
-    public abstract void onSuccess(T result);
 
     public void onError(Response response) {
         onFailure(new RestException("An error occured. Status : " + response.getStatusCode()));
