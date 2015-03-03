@@ -264,6 +264,7 @@ public class RestRequestBuilder<B, R> {
 
         RequestBuilder builder = new RequestBuilder( method, urlBuilder.toString() );
         builder.setHeader( "Content-Type", "application/json; charset=utf-8" );
+        builder.setHeader( "Accept", "application/json" );
 
         if ( null != headers && !headers.isEmpty() ) {
             for ( Entry<String, String> header : headers.entrySet() ) {
@@ -300,7 +301,7 @@ public class RestRequestBuilder<B, R> {
         try {
             return builder.send();
         } catch ( RequestException e ) {
-            throw new RuntimeException( e );
+            throw new RestException( e );
         }
     }
 
