@@ -19,7 +19,7 @@ With Maven
 <dependency>
   <groupId>com.github.nmorel.gwtjackson</groupId>
   <artifactId>gwt-jackson-rest-processor</artifactId>
-  <version>0.1.0</version>
+  <version>0.2.0</version>
   <scope>provided</scope>
 </dependency>
 ```
