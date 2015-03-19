@@ -40,7 +40,7 @@ class RestRequestCallback<R> implements RequestCallback {
         if (isSuccessStatusCode(response)) {
             if (null != callback) {
                 R result;
-                if (null != responseConverter) {
+                if (null != responseConverter && null != response.getText() && !response.getText().isEmpty()) {
                     try {
                         result = responseConverter.read(response.getText());
                     } catch (Exception e) {
