@@ -193,6 +193,9 @@ public class RestRequestBuilder<B, R> {
     }
 
     public RestRequestBuilder<B, R> addPathParam( String name, Object value ) {
+        if ( null == pathParams ) {
+            pathParams = new LinkedHashMap<String, Object>();
+        }
         pathParams.put( name, value );
         return this;
     }

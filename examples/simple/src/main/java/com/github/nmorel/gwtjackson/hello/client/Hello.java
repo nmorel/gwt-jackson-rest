@@ -39,18 +39,24 @@ public class Hello implements EntryPoint {
     public void onModuleLoad() {
         RestRequestBuilder.setDefaultApplicationPath( "rest" );
 
-        final Button sendButton = new Button( "Send" );
+        final Button sendGetButton = new Button( "GET" );
+        final Button sendPostButton = new Button( "POST" );
+        final Button sendPostPathButton = new Button( "POST + Path" );
         final TextBox nameField = new TextBox();
         nameField.setText( "GWT User" );
         final Label errorLabel = new Label();
 
         // We can add style names to widgets
-        sendButton.addStyleName( "sendButton" );
+        sendGetButton.addStyleName( "sendButton" );
+        sendPostButton.addStyleName( "sendButton" );
+        sendPostPathButton.addStyleName( "sendButton" );
 
         // Add the nameField and sendButton to the RootPanel
         // Use RootPanel.get() to get the entire body element
         RootPanel.get( "nameFieldContainer" ).add( nameField );
-        RootPanel.get( "sendButtonContainer" ).add( sendButton );
+        RootPanel.get( "sendButtonContainer" ).add( sendGetButton );
+        RootPanel.get( "sendButtonContainer" ).add( sendPostButton );
+        RootPanel.get( "sendButtonContainer" ).add( sendPostPathButton );
         RootPanel.get( "errorLabelContainer" ).add( errorLabel );
 
         // Focus the cursor on the name field when the app loads
@@ -80,13 +86,20 @@ public class Hello implements EntryPoint {
         closeButton.addClickHandler( new ClickHandler() {
             public void onClick( ClickEvent event ) {
                 dialogBox.hide();
-                sendButton.setEnabled( true );
-                sendButton.setFocus( true );
+                sendGetButton.setEnabled( true );
+                sendPostButton.setEnabled( true );
+                sendPostPathButton.setEnabled( true );
             }
         } );
 
         // Create a handler for the sendButton and nameField
         class MyHandler implements ClickHandler, KeyUpHandler {
+
+            private final int req;
+
+            MyHandler( int req ) {
+                this.req = req;
+            }
 
             /**
              * Fired when the user clicks on the sendButton.
@@ -117,35 +130,49 @@ public class Hello implements EntryPoint {
                 }
 
                 // Then, we send the input to the server.
-                sendButton.setEnabled( false );
+                sendGetButton.setEnabled( false );
+                sendPostButton.setEnabled( false );
+                sendPostPathButton.setEnabled( false );
                 textToServerLabel.setText( textToServer );
                 serverResponseLabel.setText( "" );
 
-                GreetingResourceBuilder.greet( new GreetingRequest( textToServer ) )
-                        .callback(new RestCallback<GreetingResponse>() {
-                            @Override
-                            public void onSuccess(GreetingResponse result) {
-                                dialogBox.setText("Remote Procedure Call");
-                                serverResponseLabel.removeStyleName("serverResponseLabelError");
-                                serverResponseLabel.setHTML(new SafeHtmlBuilder().appendEscaped(result.getGreeting())
-                                        .appendHtmlConstant("<br><br>I am running ").appendEscaped(result.getServerInfo())
-                                        .appendHtmlConstant(".<br><br>It looks like you are using:<br>").appendEscaped(result
-                                                .getUserAgent()).toSafeHtml());
-                                dialogBox.center();
-                                closeButton.setFocus(true);
-                            }
+                RestCallback<GreetingResponse> callback = new RestCallback<GreetingResponse>() {
+                    @Override
+                    public void onSuccess( GreetingResponse result ) {
+                        dialogBox.setText( "Remote Procedure Call" );
+                        serverResponseLabel.removeStyleName( "serverResponseLabelError" );
+                        serverResponseLabel.setHTML( new SafeHtmlBuilder().appendEscaped( result.getGreeting() )
+                                .appendHtmlConstant( "<br><br>I am running " ).appendEscaped( result.getServerInfo() )
+                                .appendHtmlConstant( ".<br><br>It looks like you are using:<br>" ).appendEscaped( result
+                                        .getUserAgent() ).toSafeHtml() );
+                        dialogBox.center();
+                        closeButton.setFocus( true );
+                    }
 
-                            @Override
-                            public void onError(Response response) {
-                                onRequestFailure();
-                            }
+                    @Override
+                    public void onError( Response response ) {
+                        onRequestFailure();
+                    }
 
-                            @Override
-                            public void onFailure(Throwable throwable) {
-                                onRequestFailure();
-                            }
-                        })
-                        .send();
+                    @Override
+                    public void onFailure( Throwable throwable ) {
+                        onRequestFailure();
+                    }
+                };
+
+                if ( req == 0 ) {
+                    GreetingResourceBuilder.hello( textToServer ).callback( callback ).send();
+                } else {
+                    if ( req == 1 ) {
+                        GreetingResourceBuilder.greet( new GreetingRequest( textToServer ) )
+                                .callback( callback )
+                                .send();
+                    } else {
+                        GreetingResourceBuilder.greet( "someId", new GreetingRequest( textToServer ) )
+                                .callback( callback )
+                                .send();
+                    }
+                }
             }
 
             private void onRequestFailure() {
@@ -159,8 +186,11 @@ public class Hello implements EntryPoint {
         }
 
         // Add a handler to send the name to the server
-        MyHandler handler = new MyHandler();
-        sendButton.addClickHandler( handler );
+        MyHandler handler = new MyHandler(0);
+        sendGetButton.addClickHandler( handler );
         nameField.addKeyUpHandler( handler );
+
+        sendPostButton.addClickHandler( new MyHandler(1) );
+        sendPostPathButton.addClickHandler( new MyHandler(2) );
     }
 }

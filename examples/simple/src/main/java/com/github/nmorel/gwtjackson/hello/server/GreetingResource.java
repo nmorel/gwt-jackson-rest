@@ -6,6 +6,7 @@ import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
@@ -29,8 +30,8 @@ public class GreetingResource {
     private HttpServletRequest httpServletRequest;
 
     @GET
-    public String hello( @QueryParam( "name" ) String name ) {
-        return "Hello " + name + "!";
+    public GreetingResponse hello( @QueryParam( "name" ) String name ) {
+        return greet(new GreetingRequest( name ));
     }
 
     @POST
@@ -52,14 +53,22 @@ public class GreetingResource {
         return response;
     }
 
-    @GenRestIgnore
+    //@GenRestIgnore
+    //@POST
+    //@Path( "/upload" )
+    //@Consumes( MediaType.MULTIPART_FORM_DATA )
+    //public void upload( InputStream is, GreetingRequest json ) {
+    //    // do something
+    //}
+
     @POST
-    @Path("/upload")
-    @Consumes( MediaType.MULTIPART_FORM_DATA)
-    public void upload( InputStream is, GreetingRequest json ) {
-        // do something
+    @Path( "/{id}" )
+    @Produces( "application/json" )
+    @Consumes( "application/json" )
+    public GreetingResponse greet( @PathParam( "id" ) String id, GreetingRequest request ) {
+        GreetingResponse response = greet( request );
+        response.setGreeting( "Hello #" + id + ", " + request.getName() + "!" );
+        return response;
     }
-
-
 
 }
