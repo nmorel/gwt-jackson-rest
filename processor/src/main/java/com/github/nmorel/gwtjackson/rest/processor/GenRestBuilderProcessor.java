@@ -24,6 +24,7 @@ import javax.annotation.processing.RoundEnvironment;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Element;
+import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.VariableElement;
@@ -40,6 +41,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import com.github.nmorel.gwtjackson.client.ObjectMapper;
@@ -104,15 +106,22 @@ public class GenRestBuilderProcessor extends AbstractProcessor {
 
             if ( !isAnnotatedWith( element, Path.class ) ) {
                 error( element, "Only classes and interfaces annotated with @%s are supported", Path.class.getCanonicalName() );
-                return true; // Exit processing
+                continue;
             }
 
-            RestService service;
-            try {
-                service = new RestService( options, element );
-            } catch ( MoreThanOneBodyParamException e ) {
-                error( e.getMethod(), "Cannot have more than one body parameter" );
-                return true;
+            RestService service = new RestService( options, element );
+
+            // For each methods in error, we log the message
+            if ( !service.getMethodsInError().isEmpty() ) {
+                for ( Entry<ExecutableElement, Exception> entry : service.getMethodsInError().entrySet() ) {
+                    try {
+                        throw entry.getValue();
+                    } catch ( MoreThanOneBodyParamException e ) {
+                        warn( entry.getKey(), "Cannot have more than one body parameter" );
+                    } catch ( Exception e ) {
+                        error( entry.getKey(), "Unexpected error: " + e.getMessage() );
+                    }
+                }
             }
 
             TypeSpec type = generateBuilder( service );
@@ -304,13 +313,23 @@ public class GenRestBuilderProcessor extends AbstractProcessor {
     }
 
     /**
+     * Prints a warning message
+     *
+     * @param e The element which has caused the error. Can be null
+     * @param msg The error message
+     * @param args if the error message contains %s, %d etc. placeholders this arguments will be used
+     * to replace them
+     */
+    public void warn( Element e, String msg, Object... args ) {
+        messager.printMessage( Diagnostic.Kind.WARNING, String.format( msg, args ), e );
+    }
+    /**
      * Prints an error message
      *
      * @param e The element which has caused the error. Can be null
      * @param msg The error message
-     * @param args if the error messge cotains %s, %d etc. placeholders this arguments will be used
-     * to
-     * replace them
+     * @param args if the error message contains %s, %d etc. placeholders this arguments will be used
+     * to replace them
      */
     public void error( Element e, String msg, Object... args ) {
         messager.printMessage( Diagnostic.Kind.ERROR, String.format( msg, args ), e );

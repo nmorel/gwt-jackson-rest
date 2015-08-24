@@ -32,8 +32,10 @@ import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -48,6 +50,8 @@ public class RestService {
     private final String builderClassName;
 
     private final List<RestServiceMethod> methods = new ArrayList<RestServiceMethod>();
+
+    private final Map<ExecutableElement, Exception> methodsInError = new HashMap<ExecutableElement, Exception>();
 
     private final Set<TypeMirror> returnTypes = new LinkedHashSet<TypeMirror>();
 
@@ -79,13 +83,19 @@ public class RestService {
     }
 
     private void parseMethod( String baseRestUrl, ExecutableElement method ) {
-        AnnotationMirror httpMethodAnnotation = findHttpMethod( method );
-        if ( null == method ) {
+        AnnotationMirror httpMethodAnnotation = isRestMethod( method );
+        if ( null == httpMethodAnnotation ) {
             // not a rest method
             return;
         }
 
-        RestServiceMethod restServiceMethod = new RestServiceMethod( method, baseRestUrl, httpMethodAnnotation );
+        RestServiceMethod restServiceMethod;
+        try {
+            restServiceMethod = new RestServiceMethod( method, baseRestUrl, httpMethodAnnotation );
+        } catch ( Exception e ) {
+            methodsInError.put( method, e );
+            return;
+        }
 
         methods.add( restServiceMethod );
 
@@ -98,25 +108,34 @@ public class RestService {
         }
     }
 
-    private AnnotationMirror findHttpMethod( ExecutableElement method ) {
+    /**
+     * Check if the method is a REST method. If the method has a HTTP method annotation like {@link GET} and is not ignored with {@link
+     * GenRestIgnore} then it's a REST method.
+     *
+     * @param method the method to check
+     *
+     * @return the HTTP method annotation found or null if the method is not a REST method or is ignored
+     */
+    private AnnotationMirror isRestMethod( ExecutableElement method ) {
+        AnnotationMirror httpMethod = null;
         for ( AnnotationMirror m : method.getAnnotationMirrors() ) {
+            if ( m.getAnnotationType().toString().equals( GenRestIgnore.class.getName() ) ) {
+                return null;
+            }
+
             if ( m.getAnnotationType().toString().equals( GET.class.getName() ) ) {
-                return m;
-            }
-            if ( m.getAnnotationType().toString().equals( POST.class.getName() ) ) {
-                return m;
-            }
-            if ( m.getAnnotationType().toString().equals( PUT.class.getName() ) ) {
-                return m;
-            }
-            if ( m.getAnnotationType().toString().equals( DELETE.class.getName() ) ) {
-                return m;
-            }
-            if ( m.getAnnotationType().toString().equals( HEAD.class.getName() ) ) {
-                return m;
+                httpMethod = m;
+            } else if ( m.getAnnotationType().toString().equals( POST.class.getName() ) ) {
+                httpMethod = m;
+            } else if ( m.getAnnotationType().toString().equals( PUT.class.getName() ) ) {
+                httpMethod = m;
+            } else if ( m.getAnnotationType().toString().equals( DELETE.class.getName() ) ) {
+                httpMethod = m;
+            } else if ( m.getAnnotationType().toString().equals( HEAD.class.getName() ) ) {
+                httpMethod = m;
             }
         }
-        return null;
+        return httpMethod;
     }
 
     public TypeElement getTypeElement() {
@@ -137,6 +156,10 @@ public class RestService {
 
     public List<RestServiceMethod> getMethods() {
         return methods;
+    }
+
+    public Map<ExecutableElement, Exception> getMethodsInError() {
+        return methodsInError;
     }
 
     public Set<TypeMirror> getReturnTypes() {

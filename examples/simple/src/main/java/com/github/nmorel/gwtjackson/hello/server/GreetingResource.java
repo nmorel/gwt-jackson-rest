@@ -8,11 +8,15 @@ import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.MediaType;
+
+import java.io.InputStream;
 
 import com.github.nmorel.gwtjackson.hello.shared.FieldVerifier;
 import com.github.nmorel.gwtjackson.hello.shared.GreetingRequest;
 import com.github.nmorel.gwtjackson.hello.shared.GreetingResponse;
 import com.github.nmorel.gwtjackson.rest.processor.GenRestBuilder;
+import com.github.nmorel.gwtjackson.rest.processor.GenRestIgnore;
 
 /**
  * @author Nicolas Morel
@@ -47,5 +51,15 @@ public class GreetingResource {
 
         return response;
     }
+
+    @GenRestIgnore
+    @POST
+    @Path("/upload")
+    @Consumes( MediaType.MULTIPART_FORM_DATA)
+    public void upload( InputStream is, GreetingRequest json ) {
+        // do something
+    }
+
+
 
 }
