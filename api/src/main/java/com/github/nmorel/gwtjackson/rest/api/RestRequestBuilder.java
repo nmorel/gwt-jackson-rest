@@ -148,30 +148,83 @@ public class RestRequestBuilder<B, R> {
         return headers;
     }
 
+    /**
+     * Special case where you want to add a query param without value like ?key1&key2=value
+     *
+     * @param name Name of the parameter
+     *
+     * @return this builder
+     */
+    public RestRequestBuilder<B, R> addQueryParam( String name ) {
+        List<Object> allValues = getQueryParams( name );
+        allValues.add( null );
+        return this;
+    }
+
+    /**
+     * Add a query parameter. If a null value is passed, the param is ignored.
+     *
+     * @param name Name of the parameter
+     * @param value Value of the parameter
+     *
+     * @return this builder
+     */
     public RestRequestBuilder<B, R> addQueryParam( String name, Object value ) {
-        List<Object> allValues = getQueryParams( name );
-        allValues.add(value);
-        return this;
-    }
-
-    public RestRequestBuilder<B, R> addQueryParam( String name, Collection<Object> values ) {
-        List<Object> allValues = getQueryParams( name );
-        allValues.addAll( values );
-        return this;
-    }
-
-    public RestRequestBuilder<B, R> addQueryParam( String name, Object[] values ) {
-        List<Object> allValues = getQueryParams( name );
-        for ( Object value : values ) {
+        if ( null != value ) {
+            List<Object> allValues = getQueryParams( name );
             allValues.add( value );
         }
         return this;
     }
 
+    /**
+     * Add a query parameter. If a null or empty collection is passed, the param is ignored.
+     *
+     * @param name Name of the parameter
+     * @param values Value of the parameter
+     *
+     * @return this builder
+     */
+    public RestRequestBuilder<B, R> addQueryParam( String name, Collection<Object> values ) {
+        if ( null != values ) {
+            List<Object> allValues = getQueryParams( name );
+            allValues.addAll( values );
+        }
+        return this;
+    }
+
+    /**
+     * Add a query parameter. If a null or empty array is passed, the param is ignored.
+     *
+     * @param name Name of the parameter
+     * @param values Value of the parameter
+     *
+     * @return this builder
+     */
+    public RestRequestBuilder<B, R> addQueryParam( String name, Object[] values ) {
+        if ( null != values ) {
+            List<Object> allValues = getQueryParams( name );
+            for ( Object value : values ) {
+                allValues.add( value );
+            }
+        }
+        return this;
+    }
+
+    /**
+     * Add a query parameter. If a null or empty collection is passed, the param is ignored.
+     *
+     * @param name Name of the parameter
+     * @param values Value of the parameter
+     *
+     * @return this builder
+     */
     public RestRequestBuilder<B, R> addQueryParam( String name, Iterable<Object> values ) {
-        List<Object> allValues = getQueryParams( name );
-        for ( Object value : values ) {
-            allValues.add( value );
+        if ( null != values ) {
+            List<Object> allValues = getQueryParams( name );
+            for ( Object value : values ) {
+                allValues.add( value );
+            }
         }
         return this;
     }
@@ -235,7 +288,8 @@ public class RestRequestBuilder<B, R> {
         String urlWithParams = url;
         if ( null != pathParams && !pathParams.isEmpty() ) {
             for ( Entry<String, Object> pathParam : pathParams.entrySet() ) {
-                urlWithParams = urlWithParams.replace( "{" + pathParam.getKey() + "}", pathParam.getValue().toString() );
+                urlWithParams = urlWithParams.replace( "{" + pathParam.getKey() + "}", pathParam.getValue() == null ? "" : pathParam
+                        .getValue().toString() );
             }
         }
 
@@ -258,8 +312,10 @@ public class RestRequestBuilder<B, R> {
                             urlBuilder.append( '&' );
                         }
                         urlBuilder.append( name );
-                        urlBuilder.append( '=' );
-                        urlBuilder.append( URL.encodeQueryString( param.toString() ) );
+                        if ( null != param ) {
+                            urlBuilder.append( '=' );
+                            urlBuilder.append( URL.encodeQueryString( param.toString() ) );
+                        }
                     }
                 }
             }

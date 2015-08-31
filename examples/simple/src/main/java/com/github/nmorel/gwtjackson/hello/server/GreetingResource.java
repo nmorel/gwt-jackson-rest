@@ -65,7 +65,7 @@ public class GreetingResource {
     @Path( "/{id}" )
     @Produces( "application/json" )
     @Consumes( "application/json" )
-    public GreetingResponse greet( @PathParam( "id" ) String id, GreetingRequest request ) {
+    public GreetingResponse greet( @PathParam( "id" ) String id, @QueryParam( "opt" ) String opt, GreetingRequest request ) {
         GreetingResponse response = greet( request );
         response.setGreeting( "Hello #" + id + ", " + request.getName() + "!" );
         return response;

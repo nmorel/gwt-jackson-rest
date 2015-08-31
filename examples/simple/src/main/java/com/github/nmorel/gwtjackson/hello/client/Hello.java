@@ -168,7 +168,8 @@ public class Hello implements EntryPoint {
                                 .callback( callback )
                                 .send();
                     } else {
-                        GreetingResourceBuilder.greet( "someId", new GreetingRequest( textToServer ) )
+                        GreetingResourceBuilder.greet( "someId", null, new GreetingRequest( textToServer ) )
+                                .addQueryParam( "other" )
                                 .callback( callback )
                                 .send();
                     }
