@@ -23,6 +23,7 @@ import javax.lang.model.type.TypeMirror;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.Context;
 
 /**
  * @author Nicolas Morel
@@ -57,7 +58,9 @@ public class RestServiceMethod {
 
         VariableElement bodyParamVariable = null;
         for ( VariableElement variable : method.getParameters() ) {
-            if ( null == variable.getAnnotation( PathParam.class ) && null == variable.getAnnotation( QueryParam.class ) ) {
+            if ( null == variable.getAnnotation( PathParam.class ) && null == variable.getAnnotation( QueryParam.class )
+                    && null == variable.getAnnotation( Context.class ) ) {
+
                 if ( null == bodyParamVariable ) {
                     bodyParamVariable = variable;
                 } else {

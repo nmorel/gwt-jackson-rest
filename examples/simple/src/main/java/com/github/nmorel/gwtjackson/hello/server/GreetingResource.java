@@ -9,6 +9,7 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 
 import java.io.InputStream;
@@ -26,18 +27,15 @@ import com.github.nmorel.gwtjackson.rest.processor.GenRestIgnore;
 @Path( "hello" )
 public class GreetingResource {
 
-    @Inject
-    private HttpServletRequest httpServletRequest;
-
     @GET
-    public GreetingResponse hello( @QueryParam( "name" ) String name ) {
-        return greet(new GreetingRequest( name ));
+    public GreetingResponse hello( @Context HttpServletRequest httpRequest, @QueryParam( "name" ) String name ) {
+        return greet( httpRequest, new GreetingRequest( name ) );
     }
 
     @POST
     @Produces( "application/json" )
     @Consumes( "application/json" )
-    public GreetingResponse greet( GreetingRequest request ) {
+    public GreetingResponse greet( @Context HttpServletRequest httpRequest, GreetingRequest request ) {
         // Verify that the input is valid.
         if ( !FieldVerifier.isValidName( request.getName() ) ) {
             // If the input is not valid, throw an IllegalArgumentException back to
@@ -46,8 +44,8 @@ public class GreetingResource {
         }
 
         GreetingResponse response = new GreetingResponse();
-        response.setServerInfo( httpServletRequest.getServletContext().getServerInfo() );
-        response.setUserAgent( httpServletRequest.getHeader( "User-Agent" ) );
+        response.setServerInfo( httpRequest.getServletContext().getServerInfo() );
+        response.setUserAgent( httpRequest.getHeader( "User-Agent" ) );
         response.setGreeting( "Hello, " + request.getName() + "!" );
 
         return response;
@@ -65,8 +63,9 @@ public class GreetingResource {
     @Path( "/{id}" )
     @Produces( "application/json" )
     @Consumes( "application/json" )
-    public GreetingResponse greet( @PathParam( "id" ) String id, @QueryParam( "opt" ) String opt, GreetingRequest request ) {
-        GreetingResponse response = greet( request );
+    public GreetingResponse greet( @Context HttpServletRequest httpRequest, @PathParam( "id" ) String id, @QueryParam( "opt" ) String
+            opt, GreetingRequest request ) {
+        GreetingResponse response = greet( httpRequest, request );
         response.setGreeting( "Hello #" + id + ", " + request.getName() + "!" );
         return response;
     }

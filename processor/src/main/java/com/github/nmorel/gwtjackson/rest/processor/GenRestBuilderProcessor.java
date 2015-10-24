@@ -34,6 +34,7 @@ import javax.tools.JavaFileObject;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.Context;
 import java.io.IOException;
 import java.io.Writer;
 import java.lang.annotation.Annotation;
@@ -219,7 +220,7 @@ public class GenRestBuilderProcessor extends AbstractProcessor {
 
     private void buildMethod(TypeSpec.Builder typeBuilder, Map<TypeMirror, MethodSpec> mapperGetters, RestServiceMethod method) {
         String methodName = method.getMethod().getSimpleName().toString();
-        
+
         AnnotationMirror httpMethodAnnotation = method.getHttpMethodAnnotation();
 
         TypeMirror returnType = method.getReturnType();
@@ -265,10 +266,14 @@ public class GenRestBuilderProcessor extends AbstractProcessor {
         if ( null != bodyTypeWriterGetter ) {
             initRestBuilder.add( "\n.bodyConverter($N())", bodyTypeWriterGetter );
         }
-        
+
         StringBuilder callParamBuilder = new StringBuilder();
 
         for ( VariableElement variable : method.getMethod().getParameters() ) {
+            if ( isAnnotatedWith( variable, Context.class ) ) {
+                continue;
+            }
+
             ParameterSpec parameterSpec = ParameterSpec.builder(ClassName.get( variable.asType() ), variable.getSimpleName().toString(), Modifier.FINAL).build();
             methodSpecBuilder.addParameter( parameterSpec );
             methodWithCallbackSpecBuilder.addParameter( parameterSpec );
@@ -276,8 +281,8 @@ public class GenRestBuilderProcessor extends AbstractProcessor {
             if (callParamBuilder.length() > 0) {
                 callParamBuilder.append(", ");
             }
-            callParamBuilder.append(variable.getSimpleName().toString());
-            
+            callParamBuilder.append( variable.getSimpleName().toString() );
+
             if ( isAnnotatedWith( variable, PathParam.class ) ) {
                 PathParam pathParamAnnotation = variable.getAnnotation( PathParam.class );
                 initRestBuilder.add( "\n.addPathParam($S, $L)", pathParamAnnotation.value(), variable.getSimpleName() );
