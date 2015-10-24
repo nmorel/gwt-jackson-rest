@@ -89,7 +89,7 @@
 
     <!-- Dependencies version -->
     <gwt.version>2.7.0</gwt.version>
-    <gwt-jackson.version>0.9.0</gwt-jackson.version>
+    <gwt-jackson.version>0.10.0</gwt-jackson.version>
     <javapoet.version>1.0.0</javapoet.version>
     <junit.version>4.12</junit.version>
   </properties>
