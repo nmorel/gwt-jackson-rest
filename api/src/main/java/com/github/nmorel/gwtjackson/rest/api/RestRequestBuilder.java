@@ -185,7 +185,7 @@ public class RestRequestBuilder<B, R> {
      *
      * @return this builder
      */
-    public RestRequestBuilder<B, R> addQueryParam( String name, Collection<Object> values ) {
+    public RestRequestBuilder<B, R> addQueryParam( String name, Collection<?> values ) {
         if ( null != values ) {
             List<Object> allValues = getQueryParams( name );
             allValues.addAll( values );
@@ -219,7 +219,7 @@ public class RestRequestBuilder<B, R> {
      *
      * @return this builder
      */
-    public RestRequestBuilder<B, R> addQueryParam( String name, Iterable<Object> values ) {
+    public RestRequestBuilder<B, R> addQueryParam( String name, Iterable<?> values ) {
         if ( null != values ) {
             List<Object> allValues = getQueryParams( name );
             for ( Object value : values ) {
