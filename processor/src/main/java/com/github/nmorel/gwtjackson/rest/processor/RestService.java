@@ -22,6 +22,7 @@ import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.PackageElement;
 import javax.lang.model.element.TypeElement;
+import javax.lang.model.type.MirroredTypeException;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.ElementFilter;
@@ -31,6 +32,7 @@ import javax.ws.rs.HEAD;
 import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
+import javax.ws.rs.core.Response;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
@@ -89,9 +91,28 @@ public class RestService {
             return;
         }
 
+        TypeMirror returnType = null;
+        if ( TypeKind.VOID != method.getReturnType().getKind() ) {
+            if ( method.getReturnType().toString().equals( Response.class.getName() ) ) {
+                GenResponseClassType ann = method.getAnnotation( GenResponseClassType.class );
+                if ( ann != null ) {
+                    try {
+                        ann.value();
+                        methodsInError.put( method, new IllegalArgumentException( "Cannot read class from annotation " + ann ) );
+                    } catch ( MirroredTypeException mte ) {
+                        returnType = mte.getTypeMirror();
+                    }
+                } else {
+                    methodsInError.put( method, new MissingGenResponseClassTypeException( method ) );
+                }
+            } else {
+                returnType = method.getReturnType();
+            }
+        }
+
         RestServiceMethod restServiceMethod;
         try {
-            restServiceMethod = new RestServiceMethod( method, baseRestUrl, httpMethodAnnotation );
+            restServiceMethod = new RestServiceMethod( method, baseRestUrl, httpMethodAnnotation, returnType );
         } catch ( Exception e ) {
             methodsInError.put( method, e );
             return;
@@ -99,8 +120,8 @@ public class RestService {
 
         methods.add( restServiceMethod );
 
-        if ( TypeKind.VOID != restServiceMethod.getReturnType().getKind() ) {
-            returnTypes.add( restServiceMethod.getReturnType() );
+        if ( null != returnType ) {
+            returnTypes.add( returnType );
         }
 
         if ( null != restServiceMethod.getBodyParamVariable() ) {

@@ -40,9 +40,10 @@ public class RestServiceMethod {
 
     private final TypeMirror returnType;
 
-    public RestServiceMethod( ExecutableElement method, String baseRestUrl, AnnotationMirror httpMethodAnnotation ) {
+    public RestServiceMethod( ExecutableElement method, String baseRestUrl, AnnotationMirror httpMethodAnnotation, TypeMirror returnType ) {
         this.method = method;
         this.httpMethodAnnotation = httpMethodAnnotation;
+        this.returnType = returnType;
 
         StringBuilder urlBuilder = new StringBuilder( baseRestUrl );
         Path path = method.getAnnotation( Path.class );
@@ -70,7 +71,6 @@ public class RestServiceMethod {
         }
         this.bodyParamVariable = bodyParamVariable;
 
-        this.returnType = method.getReturnType();
     }
 
     public ExecutableElement getMethod() {

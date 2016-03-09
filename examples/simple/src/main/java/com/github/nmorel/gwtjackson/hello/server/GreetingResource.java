@@ -1,6 +1,5 @@
 package com.github.nmorel.gwtjackson.hello.server;
 
-import javax.inject.Inject;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
@@ -10,15 +9,13 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-
-import java.io.InputStream;
+import javax.ws.rs.core.Response;
 
 import com.github.nmorel.gwtjackson.hello.shared.FieldVerifier;
 import com.github.nmorel.gwtjackson.hello.shared.GreetingRequest;
 import com.github.nmorel.gwtjackson.hello.shared.GreetingResponse;
+import com.github.nmorel.gwtjackson.rest.processor.GenResponseClassType;
 import com.github.nmorel.gwtjackson.rest.processor.GenRestBuilder;
-import com.github.nmorel.gwtjackson.rest.processor.GenRestIgnore;
 
 /**
  * @author Nicolas Morel
@@ -30,6 +27,11 @@ public class GreetingResource {
     @GET
     public GreetingResponse hello( @Context HttpServletRequest httpRequest, @QueryParam( "name" ) String name ) {
         return greet( httpRequest, new GreetingRequest( name ) );
+    }
+
+    @POST
+    @Path( "/ping" )
+    public void ping( @Context HttpServletRequest httpRequest ) {
     }
 
     @POST
@@ -68,6 +70,18 @@ public class GreetingResource {
         GreetingResponse response = greet( httpRequest, request );
         response.setGreeting( "Hello #" + id + ", " + request.getName() + "!" );
         return response;
+    }
+
+    @POST
+    @Path( "/{id}" )
+    @Consumes( "application/json" )
+    @GenResponseClassType( GreetingResponse.class )
+    public Response greetWithCustomHTTPCode( @Context HttpServletRequest httpRequest, @PathParam( "id" ) String id,
+                                             @QueryParam( "opt" ) String opt, GreetingRequest request ) {
+
+        GreetingResponse response = greet( httpRequest, request );
+        response.setGreeting( "Hello #" + id + ", " + request.getName() + "!" );
+        return Response.ok( response ).build();
     }
 
 }

@@ -167,8 +167,13 @@ public class Hello implements EntryPoint {
                         GreetingResourceBuilder.greet( new GreetingRequest( textToServer ) )
                                 .callback( callback )
                                 .send();
-                    } else {
+                    } else if ( req == 2 ) {
                         GreetingResourceBuilder.greet( "someId", null, new GreetingRequest( textToServer ) )
+                                .addQueryParam( "other" )
+                                .callback( callback )
+                                .send();
+                    } else {
+                        GreetingResourceBuilder.greetWithCustomHTTPCode( "someId", null, new GreetingRequest( textToServer ) )
                                 .addQueryParam( "other" )
                                 .callback( callback )
                                 .send();
@@ -187,11 +192,11 @@ public class Hello implements EntryPoint {
         }
 
         // Add a handler to send the name to the server
-        MyHandler handler = new MyHandler(0);
+        MyHandler handler = new MyHandler( 0 );
         sendGetButton.addClickHandler( handler );
         nameField.addKeyUpHandler( handler );
 
-        sendPostButton.addClickHandler( new MyHandler(1) );
-        sendPostPathButton.addClickHandler( new MyHandler(2) );
+        sendPostButton.addClickHandler( new MyHandler( 1 ) );
+        sendPostPathButton.addClickHandler( new MyHandler( 2 ) );
     }
 }
