@@ -322,7 +322,6 @@ public class RestRequestBuilder<B, R> {
         }
 
         RequestBuilder builder = new RequestBuilder( method, urlBuilder.toString() );
-        builder.setHeader( "Content-Type", "application/json; charset=utf-8" );
         builder.setHeader( "Accept", "application/json" );
 
         if ( null != headers && !headers.isEmpty() ) {
@@ -348,6 +347,7 @@ public class RestRequestBuilder<B, R> {
         }
 
         if ( null != body ) {
+            builder.setHeader( "Content-Type", "application/json; charset=utf-8" );
             if ( null != bodyConverter ) {
                 builder.setRequestData( bodyConverter.write( body ) );
             } else {
