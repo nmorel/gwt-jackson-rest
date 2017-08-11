@@ -48,8 +48,8 @@
   </licenses>
 
   <scm>
-    <connection>scm:git:git://github.com/nmorel/gwt-jackson-rest.git</connection>
-    <developerConnection>scm:git:git@github.com:nmorel/gwt-jackson-rest.git</developerConnection>
+    <connection>scm:git:https://github.com/nmorel/gwt-jackson-rest.git</connection>
+    <developerConnection>scm:git:https://github.com/nmorel/gwt-jackson-rest.git</developerConnection>
     <url>https://github.com/nmorel/gwt-jackson-rest</url>
     <tag>HEAD</tag>
   </scm>
