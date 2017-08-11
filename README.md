@@ -1,4 +1,4 @@
-gwt-jackson-rest [![Build Status](https://nmorel.ci.cloudbees.com/buildStatus/icon?job=gwt-jackson-rest)](https://nmorel.ci.cloudbees.com/job/gwt-jackson-rest/)
+gwt-jackson-rest
 =====
 gwt-jackson-rest is a simple GWT REST client using [gwt-jackson](https://github.com/nmorel/gwt-jackson). It includes an api and an annotation processor which generates an helper class to easily send REST request to an annotated REST service.
 
@@ -19,7 +19,7 @@ With Maven
 <dependency>
   <groupId>com.github.nmorel.gwtjackson</groupId>
   <artifactId>gwt-jackson-rest-processor</artifactId>
-  <version>0.4.0</version>
+  <version>0.5.0</version>
   <scope>provided</scope>
 </dependency>
 ```
@@ -41,5 +41,3 @@ Copyright and license
 -------------
 
 Copyright 2015 Nicolas Morel under the [Apache 2.0 license](LICENSE).
-
-<img alt="" class="attr__format__media_large attr__typeof__foaf:Image img__fid__7476 img__view_mode__media_large media-image" src="https://www.cloudbees.com/sites/default/files/styles/large/public/Button-Built-on-CB-1.png?itok=3Tnkun-C" style="height:61px; width:178px">
