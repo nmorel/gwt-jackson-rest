@@ -26,14 +26,17 @@ import javax.lang.model.type.MirroredTypeException;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.ElementFilter;
+import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.HEAD;
 import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
+import javax.ws.rs.Produces;
 import javax.ws.rs.core.Response;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -78,18 +81,23 @@ public class RestService {
 
         Path path = typeElement.getAnnotation( Path.class );
         String baseRestUrl = path.value();
+        
+        Consumes baseConsumes = typeElement.getAnnotation( Consumes.class );
+        Produces baseProduces = typeElement.getAnnotation( Produces.class );
 
         for ( ExecutableElement method : ElementFilter.methodsIn( typeElement.getEnclosedElements() ) ) {
-            parseMethod( baseRestUrl, method );
+            parseMethod( baseRestUrl, baseConsumes, baseProduces, method );
         }
     }
 
-    private void parseMethod( String baseRestUrl, ExecutableElement method ) {
-        AnnotationMirror httpMethodAnnotation = isRestMethod( method );
+    private void parseMethod( String baseRestUrl, Consumes baseConsumes, Produces baseProduces, ExecutableElement method ) {
+        AnnotationMirror httpMethodAnnotation = isRestMethod( method, baseConsumes, baseProduces );
         if ( null == httpMethodAnnotation ) {
             // not a rest method
             return;
         }
+        String consumes = getFirstJsonType( getConsumes( baseConsumes, method ) );
+        String produces = getFirstJsonType( getProduces( baseProduces, method ) );
 
         TypeMirror returnType = null;
         if ( TypeKind.VOID != method.getReturnType().getKind() ) {
@@ -112,7 +120,7 @@ public class RestService {
 
         RestServiceMethod restServiceMethod;
         try {
-            restServiceMethod = new RestServiceMethod( method, baseRestUrl, httpMethodAnnotation, returnType );
+            restServiceMethod = new RestServiceMethod( method, baseRestUrl, httpMethodAnnotation, consumes, produces, returnType );
         } catch ( Exception e ) {
             methodsInError.put( method, e );
             return;
@@ -137,7 +145,7 @@ public class RestService {
      *
      * @return the HTTP method annotation found or null if the method is not a REST method or is ignored
      */
-    private AnnotationMirror isRestMethod( ExecutableElement method ) {
+    private AnnotationMirror isRestMethod( ExecutableElement method, Consumes baseConsumes, Produces baseProduces ) {
         AnnotationMirror httpMethod = null;
         for ( AnnotationMirror m : method.getAnnotationMirrors() ) {
             if ( m.getAnnotationType().toString().equals( GenRestIgnore.class.getName() ) ) {
@@ -156,7 +164,49 @@ public class RestService {
                 httpMethod = m;
             }
         }
+
+        String[] consumes = getConsumes( baseConsumes, method );
+        if( consumes != null && consumes.length > 0 && getFirstJsonType( consumes ) == null ) {
+            return null;
+        }
+        String[] produces = getProduces( baseProduces, method );
+        if( produces != null && produces.length > 0 && getFirstJsonType( produces ) == null ) {
+            return null;
+        }
+
         return httpMethod;
+    }
+    
+    private String getFirstJsonType(String[] types) {
+        if(types != null) {
+            for(String type : types) {
+                // Regex taken from https://tools.ietf.org/html/rfc6838#section-4.2
+                if(type.matches("application/([a-z0-9!#$&-^_.]+\\+)?json")) {
+                    return type;
+                }
+            }
+	    }
+        return null;
+    }
+
+    /**
+     * @param method the method to check
+     *
+     * @return the Consumes annotation found or null if the method does not have one
+     */
+    private String[] getConsumes( Consumes baseConsumes, ExecutableElement method ) {
+        Consumes localConsumes = method.getAnnotation( Consumes.class );
+        return localConsumes != null ? localConsumes.value() : baseConsumes != null ? baseConsumes.value() : null;
+    }
+    
+    /**
+     * @param method the method to check
+     *
+     * @return the Produces annotation found or null if the method does not have one
+     */
+    private String[] getProduces( Produces baseProduces, ExecutableElement method ) {
+        Produces localProduces = method.getAnnotation( Produces.class );
+        return localProduces != null ? localProduces.value() : baseProduces != null ? baseProduces.value() : null;
     }
 
     public TypeElement getTypeElement() {

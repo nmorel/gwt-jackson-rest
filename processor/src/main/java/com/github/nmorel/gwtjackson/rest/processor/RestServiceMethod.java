@@ -39,14 +39,20 @@ public class RestServiceMethod {
     private final AnnotationMirror httpMethodAnnotation;
 
     private final String url;
+    
+    private final String consumes;
+    
+    private final String produces;
 
     private final VariableElement bodyParamVariable;
 
     private final TypeMirror returnType;
 
-    public RestServiceMethod( ExecutableElement method, String baseRestUrl, AnnotationMirror httpMethodAnnotation, TypeMirror returnType ) {
+    public RestServiceMethod( ExecutableElement method, String baseRestUrl, AnnotationMirror httpMethodAnnotation, String consumes, String produces, TypeMirror returnType ) {
         this.method = method;
         this.httpMethodAnnotation = httpMethodAnnotation;
+        this.consumes = consumes;
+        this.produces = produces;
         this.returnType = returnType;
 
         StringBuilder urlBuilder = new StringBuilder( baseRestUrl );
@@ -129,5 +135,13 @@ public class RestServiceMethod {
 
     public TypeMirror getReturnType() {
         return returnType;
+    }
+    
+    public String getConsumes() {
+        return consumes;
+    }
+    
+    public String getProduces() {
+        return produces;
     }
 }

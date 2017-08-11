@@ -270,6 +270,12 @@ public class GenRestBuilderProcessor extends AbstractProcessor {
         if ( null != bodyTypeWriterGetter ) {
             initRestBuilder.add( "\n.bodyConverter($N())", bodyTypeWriterGetter );
         }
+        if ( null != method.getConsumes() ) {
+            initRestBuilder.add( "\n.addHeader($S, $S)", "Content-Type", method.getConsumes() );
+        }
+        if ( null != method.getProduces() ) {
+            initRestBuilder.add( "\n.addHeader($S, $S)", "Accept", method.getProduces() );
+        }
 
         StringBuilder callParamBuilder = new StringBuilder();
 
