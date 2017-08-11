@@ -149,7 +149,7 @@ public class RestRequestBuilder<B, R> {
     }
 
     /**
-     * Special case where you want to add a query param without value like ?key1&key2=value
+     * Special case where you want to add a query param without value like ?key1
      *
      * @param name Name of the parameter
      *
