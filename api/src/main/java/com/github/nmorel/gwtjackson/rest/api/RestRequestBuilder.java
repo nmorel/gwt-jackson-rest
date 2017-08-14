@@ -347,7 +347,9 @@ public class RestRequestBuilder<B, R> {
         }
 
         if ( null != body ) {
-            builder.setHeader( "Content-Type", "application/json; charset=utf-8" );
+            if( null == builder.getHeader( "Content-Type" ) ) {
+                builder.setHeader( "Content-Type", "application/json; charset=utf-8" );
+            }
             if ( null != bodyConverter ) {
                 builder.setRequestData( bodyConverter.write( body ) );
             } else {
